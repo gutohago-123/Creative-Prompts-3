@@ -3,6 +3,7 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "homepage": "https://gutohago-123.github.io/Creative-Prompts-3",
   "scripts": {
     "dev": "tsx server.ts",
     "build": "vite build",

@@ -27,7 +27,7 @@ export default function App() {
   return (
     <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
       <LanguageProvider>
-        <Router>
+        <Router basename={import.meta.env.BASE_URL}>
           <ScrollToTop />
           <div className="min-h-screen bg-background selection:bg-primary/20 flex flex-col">
             <Navbar />
