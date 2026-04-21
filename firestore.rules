@@ -1,0 +1,86 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ===============================================================
+    // Global Hardened Helpers
+    // ===============================================================
+    function isSignedIn() { return request.auth != null; }
+    function isValidId(id) { return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+    function isAdmin() { 
+      return isSignedIn() && (
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.plan == 'admin') ||
+        (request.auth.token.email == "moaathbakhrish@gmail.com" && request.auth.token.email_verified == true)
+      );
+    }
+    function isOwner(userId) { return isSignedIn() && request.auth.uid == userId; }
+
+    function isValidEmail(email) {
+      return email is string && email.size() <= 256 && email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
+    }
+
+    // ===============================================================
+    // Validation Blueprints
+    // ===============================================================
+    function isValidUser(data) {
+      return data.keys().hasAll(['uid', 'email', 'plan', 'credits']) &&
+             data.uid is string && data.uid == request.auth.uid &&
+             data.email is string && isValidEmail(data.email) &&
+             (!('name' in data) || (data.name is string && data.name.size() <= 100)) &&
+             data.plan in ['free', 'pro', 'admin'] &&
+             data.credits is number && data.credits >= 0 &&
+             (!('favorites' in data) || (data.favorites is list && data.favorites.size() <= 100)) &&
+             (!('dailyGenerations' in data) || data.dailyGenerations is number) &&
+             (!('lastGenerationDate' in data) || data.lastGenerationDate is string) &&
+             (!('isLifetime' in data) || data.isLifetime is bool);
+    }
+
+    function isValidUserUpdate(data) {
+      return (!('uid' in data) || (data.uid is string && data.uid == request.auth.uid)) &&
+             (!('email' in data) || (data.email is string && isValidEmail(data.email))) &&
+             (!('name' in data) || (data.name is string && data.name.size() <= 100)) &&
+             (!('plan' in data) || (data.plan in ['free', 'pro', 'admin'])) &&
+             (!('credits' in data) || (data.credits is number && data.credits >= 0)) &&
+             (!('favorites' in data) || (data.favorites is list && data.favorites.size() <= 100)) &&
+             (!('dailyGenerations' in data) || data.dailyGenerations is number) &&
+             (!('lastGenerationDate' in data) || data.lastGenerationDate is string) &&
+             (!('isLifetime' in data) || data.isLifetime is bool);
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+    
+    // Global Default Deny
+    match /{document=**} { allow read, write: if false; }
+
+    match /users/{userId} {
+      allow get: if isOwner(userId) || isAdmin();
+      allow list: if isAdmin();
+      
+      allow create: if isOwner(userId) && isValidId(userId) && isValidUser(incoming()) && 
+                      incoming().plan == 'free';
+      
+      allow update: if isOwner(userId) && isValidUserUpdate(incoming()) &&
+                      (
+                        (incoming().diff(existing()).affectedKeys().hasOnly(['name', 'favorites', 'dailyGenerations', 'lastGenerationDate'])) ||
+                        isAdmin()
+                      ) &&
+                      (incoming().plan == existing().plan) &&
+                      (incoming().credits == existing().credits) &&
+                      (incoming().uid == existing().uid);
+      
+      allow delete: if isAdmin();
+    }
+
+    match /prompt_stats/{promptId} {
+      allow get: if true;
+      allow list: if true;
+      
+      allow create, update: if isSignedIn() || isAdmin(); // Simplified write rule
+    }
+  }
+}
