@@ -2,7 +2,7 @@ import { Handler } from '@netlify/functions';
 
 export const handler: Handler = async (event) => {
   try {
-    const SHEETS_URL = 'https://script.google.com/macros/s/AKfycbzdog1J5djq52THUd9pt_YBK34iP3hgcLPULnv6zwIwdtI5w10AWfOngzirt-nGtoRfnw/exec';
+    const SHEETS_URL = 'https://script.google.com/macros/s/AKfycbyqt5Y0TJzqo8kO8iEVoix3Cv6CZoGyemZ5fESFPDhN_LwbNq_IEsOll_iaHKi8Zw9Olg/exec';
     
     console.log('Attempting to fetch from:', SHEETS_URL);
     const response = await fetch(SHEETS_URL, { redirect: 'follow' });
