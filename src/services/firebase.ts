@@ -5,32 +5,21 @@ import { getFirestore, doc, getDoc, setDoc, updateDoc, arrayUnion, arrayRemove, 
 import { getStorage } from 'firebase/storage';
 import { UserProfile } from '../types';
 
-// Fetch firebase config from public folder at runtime
-async function getFirebaseConfig() {
-  const response = await fetch('/firebase-config.json');
-  return await response.json();
-}
+// Initialize Firebase
+const firebaseConfig = {
+  apiKey: "AIzaSyCOdkbjyF8Dqbb0bEd9fMGnGxPChjiMeTg",
+  authDomain: "long-province-468111-d1.firebaseapp.com",
+  projectId: "long-province-468111-d1",
+  storageBucket: "long-province-468111-d1.firebasestorage.app",
+  messagingSenderId: "585113647994",
+  appId: "1:585113647994:web:66a201d8954b2dd40ab4c3",
+};
 
-let auth: any;
-let db: any;
-let storage: any;
-let googleProvider: any;
-
-// Initialize Firebase with lazy loading
-async function initFirebase() {
-  const firebaseConfig = await getFirebaseConfig();
-  const app = initializeApp(firebaseConfig);
-  auth = getAuth(app);
-  db = getFirestore(app, firebaseConfig.firestoreDatabaseId); // Use Database ID from JSON
-  storage = getStorage(app);
-  googleProvider = new GoogleAuthProvider();
-  return { auth, db, storage, googleProvider };
-}
-
-// We need to export these, so we'll init them immediately
-const firebasePromise = initFirebase();
-
-export { auth, db, storage, googleProvider, firebasePromise, onAuthStateChanged };
+const app = initializeApp(firebaseConfig);
+export const auth = getAuth(app);
+export const db = getFirestore(app, "ai-studio-4502fcea-bc00-4fe6-8590-945c170a3936");
+export const storage = getStorage(app);
+export const googleProvider = new GoogleAuthProvider();
 export type { User };
 
 
@@ -99,7 +88,6 @@ async function testConnection() {
 testConnection();
 
 export async function signInWithGoogle() {
-  const { auth, googleProvider } = await firebasePromise; // Wait for initialization
   try {
     console.log('Attempting Google sign-in...');
     const result = await signInWithPopup(auth, googleProvider);
@@ -122,7 +110,6 @@ export async function signInWithGoogle() {
 }
 
 export async function signInWithEmail(email: string, pass: string) {
-  const { auth } = await firebasePromise;
   try {
     const result = await signInWithEmailAndPassword(auth, email, pass);
     return result.user;
@@ -133,7 +120,6 @@ export async function signInWithEmail(email: string, pass: string) {
 }
 
 export async function signUpWithEmail(email: string, pass: string, name?: string) {
-  const { auth } = await firebasePromise;
   try {
     const result = await createUserWithEmailAndPassword(auth, email, pass);
     const user = result.user;
@@ -151,7 +137,6 @@ export async function signUpWithEmail(email: string, pass: string, name?: string
 }
 
 async function ensureUserExists(user: User) {
-  const { db } = await firebasePromise;
   const path = `users/${user.uid}`;
   try {
     const userRef = doc(db, 'users', user.uid);
@@ -176,7 +161,6 @@ async function ensureUserExists(user: User) {
 }
 
 export async function getUserProfile(uid: string): Promise<UserProfile | null> {
-  const { db } = await firebasePromise;
   const path = `users/${uid}`;
   try {
     const userRef = doc(db, 'users', uid);
@@ -189,7 +173,6 @@ export async function getUserProfile(uid: string): Promise<UserProfile | null> {
 }
 
 export async function toggleFavorite(uid: string, promptId: string, isFavorite: boolean) {
-  const { db } = await firebasePromise;
   const path = `users/${uid}`;
   try {
     const userRef = doc(db, 'users', uid);
@@ -202,7 +185,6 @@ export async function toggleFavorite(uid: string, promptId: string, isFavorite: 
 }
 
 export async function saveGeneration(uid: string, prompt: string) {
-  const { db } = await firebasePromise;
   const path = `users/${uid}`;
   try {
     const userRef = doc(db, 'users', uid);
