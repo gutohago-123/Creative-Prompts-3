@@ -1,17 +1,38 @@
 import { initializeApp } from 'firebase/app';
-import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged, User, signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
+import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
+import type { User } from 'firebase/auth';
 import { getFirestore, doc, getDoc, setDoc, updateDoc, arrayUnion, arrayRemove, increment, getDocFromServer } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 import { UserProfile } from '../types';
-import firebaseConfig from '../../firebase-applet-config.json';
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-export const auth = getAuth(app);
-// Use the specific database ID provided in the setup
-export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
-export const storage = getStorage(app);
-export const googleProvider = new GoogleAuthProvider();
+// Fetch firebase config from public folder at runtime
+async function getFirebaseConfig() {
+  const response = await fetch('/firebase-config.json');
+  return await response.json();
+}
+
+let auth: any;
+let db: any;
+let storage: any;
+let googleProvider: any;
+
+// Initialize Firebase with lazy loading
+async function initFirebase() {
+  const firebaseConfig = await getFirebaseConfig();
+  const app = initializeApp(firebaseConfig);
+  auth = getAuth(app);
+  db = getFirestore(app, firebaseConfig.firestoreDatabaseId); // Use Database ID from JSON
+  storage = getStorage(app);
+  googleProvider = new GoogleAuthProvider();
+  return { auth, db, storage, googleProvider };
+}
+
+// We need to export these, so we'll init them immediately
+const firebasePromise = initFirebase();
+
+export { auth, db, storage, googleProvider, firebasePromise, onAuthStateChanged };
+export type { User };
+
 
 // Error Handling
 export enum OperationType {
@@ -78,6 +99,7 @@ async function testConnection() {
 testConnection();
 
 export async function signInWithGoogle() {
+  const { auth, googleProvider } = await firebasePromise; // Wait for initialization
   try {
     console.log('Attempting Google sign-in...');
     const result = await signInWithPopup(auth, googleProvider);
@@ -100,6 +122,7 @@ export async function signInWithGoogle() {
 }
 
 export async function signInWithEmail(email: string, pass: string) {
+  const { auth } = await firebasePromise;
   try {
     const result = await signInWithEmailAndPassword(auth, email, pass);
     return result.user;
@@ -110,6 +133,7 @@ export async function signInWithEmail(email: string, pass: string) {
 }
 
 export async function signUpWithEmail(email: string, pass: string, name?: string) {
+  const { auth } = await firebasePromise;
   try {
     const result = await createUserWithEmailAndPassword(auth, email, pass);
     const user = result.user;
@@ -127,6 +151,7 @@ export async function signUpWithEmail(email: string, pass: string, name?: string
 }
 
 async function ensureUserExists(user: User) {
+  const { db } = await firebasePromise;
   const path = `users/${user.uid}`;
   try {
     const userRef = doc(db, 'users', user.uid);
@@ -151,6 +176,7 @@ async function ensureUserExists(user: User) {
 }
 
 export async function getUserProfile(uid: string): Promise<UserProfile | null> {
+  const { db } = await firebasePromise;
   const path = `users/${uid}`;
   try {
     const userRef = doc(db, 'users', uid);
@@ -163,6 +189,7 @@ export async function getUserProfile(uid: string): Promise<UserProfile | null> {
 }
 
 export async function toggleFavorite(uid: string, promptId: string, isFavorite: boolean) {
+  const { db } = await firebasePromise;
   const path = `users/${uid}`;
   try {
     const userRef = doc(db, 'users', uid);
@@ -175,6 +202,7 @@ export async function toggleFavorite(uid: string, promptId: string, isFavorite: 
 }
 
 export async function saveGeneration(uid: string, prompt: string) {
+  const { db } = await firebasePromise;
   const path = `users/${uid}`;
   try {
     const userRef = doc(db, 'users', uid);

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { auth, db, handleFirestoreError, OperationType } from '@/services/firebase';
+import { auth, db, handleFirestoreError, OperationType, firebasePromise } from '@/services/firebase';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { UserProfile } from '@/types';
@@ -11,36 +11,39 @@ export function useAuth() {
 
   useEffect(() => {
     let unsubscribeProfile: (() => void) | null = null;
+    let unsubscribeAuth: (() => void) | null = null;
 
-    const unsubscribeAuth = onAuthStateChanged(auth, (firebaseUser) => {
-      setUser(firebaseUser);
-      
-      if (firebaseUser) {
-        // Set up real-time listener for user profile
-        const userRef = doc(db, 'users', firebaseUser.uid);
-        unsubscribeProfile = onSnapshot(userRef, (docSnap) => {
-          if (docSnap.exists()) {
-            setProfile(docSnap.data() as UserProfile);
-          } else {
-            setProfile(null);
+    firebasePromise.then(() => {
+      unsubscribeAuth = onAuthStateChanged(auth, (firebaseUser) => {
+        setUser(firebaseUser);
+        
+        if (firebaseUser) {
+          // Set up real-time listener for user profile
+          const userRef = doc(db, 'users', firebaseUser.uid);
+          unsubscribeProfile = onSnapshot(userRef, (docSnap) => {
+            if (docSnap.exists()) {
+              setProfile(docSnap.data() as UserProfile);
+            } else {
+              setProfile(null);
+            }
+            setLoading(false);
+          }, (error) => {
+            handleFirestoreError(error, OperationType.GET, userRef.path);
+            setLoading(false);
+          });
+        } else {
+          if (unsubscribeProfile) {
+            unsubscribeProfile();
+            unsubscribeProfile = null;
           }
+          setProfile(null);
           setLoading(false);
-        }, (error) => {
-          handleFirestoreError(error, OperationType.GET, userRef.path);
-          setLoading(false);
-        });
-      } else {
-        if (unsubscribeProfile) {
-          unsubscribeProfile();
-          unsubscribeProfile = null;
         }
-        setProfile(null);
-        setLoading(false);
-      }
+      });
     });
 
     return () => {
-      unsubscribeAuth();
+      if (unsubscribeAuth) unsubscribeAuth();
       if (unsubscribeProfile) unsubscribeProfile();
     };
   }, []);
