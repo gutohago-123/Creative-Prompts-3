@@ -36,7 +36,7 @@ async function startServer() {
           "Content-Type": "application/json"
         },
         body: JSON.stringify({
-          model: "openai/gpt-3.5-turbo",
+          model: "google/gemini-pro-1.5:free",
           messages: [
             { role: "system", content: "You are an expert prompt engineer. Generate cinematic, high-end, detailed prompts. Return only the final result." },
             { role: "user", content: input }

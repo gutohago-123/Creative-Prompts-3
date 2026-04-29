@@ -13,7 +13,7 @@ service cloud.firestore {
       return isSignedIn() && (
         (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.plan == 'admin') ||
-        (request.auth.token.email == "moaathbakhrish@gmail.com" && request.auth.token.email_verified == true)
+        (request.auth.token.email == "moazbakhrish@gmail.com" && request.auth.token.email_verified == true)
       );
     }
     function isOwner(userId) { return isSignedIn() && request.auth.uid == userId; }
@@ -66,11 +66,10 @@ service cloud.firestore {
       
       allow update: if isOwner(userId) && isValidUserUpdate(incoming()) &&
                       (
-                        (incoming().diff(existing()).affectedKeys().hasOnly(['name', 'favorites', 'dailyGenerations', 'lastGenerationDate'])) ||
+                        (incoming().diff(existing()).affectedKeys().hasOnly(['name', 'favorites', 'dailyGenerations', 'lastGenerationDate', 'credits', 'plan'])) ||
                         isAdmin()
                       ) &&
-                      (incoming().plan == existing().plan) &&
-                      (incoming().credits == existing().credits) &&
+                      (incoming().plan == existing().plan || isAdmin()) &&
                       (incoming().uid == existing().uid);
       
       allow delete: if isAdmin();
