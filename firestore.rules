@@ -66,7 +66,7 @@ service cloud.firestore {
       
       allow update: if isOwner(userId) && isValidUserUpdate(incoming()) &&
                       (
-                        (incoming().diff(existing()).affectedKeys().hasOnly(['name', 'favorites', 'dailyGenerations', 'lastGenerationDate', 'credits', 'plan', 'email', 'isLifetime'])) ||
+                        (incoming().diff(existing()).affectedKeys().hasOnly(['name', 'favorites', 'dailyGenerations', 'lastGenerationDate', 'credits', 'plan', 'email', 'isLifetime', 'role', 'status'])) ||
                         isAdmin()
                       ) &&
                       (incoming().plan == existing().plan || isAdmin()) &&
